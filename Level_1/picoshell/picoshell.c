@@ -39,7 +39,6 @@
 // child processes and return 0.
 
 #include <unistd.h>
-#include <sys/wait.h>
 #include <stdlib.h>
 
 int picoshell(char **cmds[])
@@ -47,7 +46,7 @@ int picoshell(char **cmds[])
     int i = 0;
     int fd[2];
     int pfd = -1;
-    pid_t pid;
+    int pid;
 
     while (cmds[i])
     {
