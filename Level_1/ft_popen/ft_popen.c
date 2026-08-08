@@ -35,12 +35,11 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <sys/types.h>
 
 int ft_popen(const char *file, char *const argv[], char type)
 {
     int fd[2];
-    pid_t pid;
+    int pid;
 
     if (!file || !argv || (type != 'r' && type != 'w'))
         return (-1);
