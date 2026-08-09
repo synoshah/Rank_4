@@ -68,7 +68,6 @@ int sandbox(void (*f)(void), unsigned int timeout, bool verbose)
     {
         if(errno != EINTR)
             return (-1);
-        
         kill(pid, SIGKILL);
         waitpid(pid, NULL, 0);
         if(verbose)
