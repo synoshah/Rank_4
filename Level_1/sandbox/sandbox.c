@@ -29,12 +29,12 @@
 
 // We will test your code with very bad functions.
 
-#include <unistd.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <signal.h>
+#include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 #include <sys/wait.h>
 #include <string.h>
 
@@ -45,62 +45,56 @@ void alarm_handler(int sig)
 
 int sandbox(void (*f)(void), unsigned int timeout, bool verbose)
 {
-    struct sigaction sa;
     int pid;
     int status;
-    int code;
+    struct sigaction sa;
 
     sa.sa_handler = alarm_handler;
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
-    if(sigaction(SIGALRM, &sa, NULL) == -1)
-        return (-1);
+    if (sigaction(SIGALRM, &sa, NULL) == -1)
+        return -1;
     pid = fork();
-    if(pid == -1)
-        return (-1);
-    if(pid == 0)
+    if (pid == -1)
+        return -1;
+    if (pid == 0)
     {
         f();
         exit(0);
     }
     alarm(timeout);
-    if(waitpid(pid, &status, WUNTRACED) == -1)
+    if (waitpid(pid, &status, WUNTRACED) == -1)
     {
-        if(errno != EINTR)
-            return (-1);
+        if (errno != EINTR)
+            return -1;
         kill(pid, SIGKILL);
         waitpid(pid, NULL, 0);
-        if(verbose)
+        if (verbose)
             printf("Bad function: timed out after %u seconds\n", timeout);
-        return (0);
+        return 0;
     }
     alarm(0);
-    if(WIFEXITED(status))
+    if (WIFEXITED(status))
     {
-        code = WEXITSTATUS(status);
-        if(code == 0)
+        if (WEXITSTATUS(status) == 0)
         {
-            if(verbose)
+            if (verbose)
                 printf("Nice function!\n");
-            return (1);
+            return 1;
         }
-        if(verbose)
-            printf("Bad function: exited with code %d\n", code);
-        return (0);
+        if (verbose)
+            printf("Bad function: exited with code %d\n", WEXITSTATUS(status));
     }
-    if(WIFSIGNALED(status))
+    else if (WIFSIGNALED(status) && verbose)
+        printf("Bad function: %s\n", strsignal(WTERMSIG(status)));
+    else if (WIFSTOPPED(status))
     {
-        if(verbose)
-            printf("Bad function: %s\n", strsignal(WTERMSIG(status)));
-        return (0);
-    }
-    if(WIFSTOPPED(status))
-    {
-        if(verbose)
-            printf("Bad function: %s\n", strsignal(WSTOPSIG(status)));
         kill(pid, SIGKILL);
         waitpid(pid, NULL, 0);
-        return (0);
+        if (verbose)
+            printf("Bad function: %s\n", strsignal(WSTOPSIG(status)));
     }
-    return (-1);
+    else
+        return -1;
+    return 0;
 }
